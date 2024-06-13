@@ -1,0 +1,114 @@
+---
+output: word_document
+date: "`r Sys.Date()`"
+params:
+  sqly: null
+  max: null
+  min: null
+  dif: null
+  bkgd: null
+  marker: null
+  max_needed : null
+  min_needed : null
+  dif_needed : null
+  bkgd_needed : null
+  order: null
+  readers: null
+title: "Manufacturability Estimates `r params$marker`" 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(summarytools)
+library(tables)
+library(flextable)
+```
+
+
+## Analysis summary for FAT simulations based on Class 1 Manufacturability Design (D198599)
+
+## FAT criteria were applied as follows: 
+
+  Test and Reference Slides were compared to an absolute range of ``r if (params$min_needed){params$min} else{"Any"}`` to ``r if (params$min_needed){params$max} else{"Any"}`` Signal Intensity `r if(params$dif_needed){paste(", as well as a maximum allowable delta (Test-Ref) of ", params$dif, " points.")} else{"."}`\
+  Test SI Acceptable: ``r if (params$min_needed){params$min} else{"Any"}`` to ``r if (params$min_needed){params$max} else{"Any"}``\
+  `r if(params$bkgd_needed){paste("Test Background Acceptable: <= ", params$bkgd, "\\")}`
+  Control SI Acceptable: ``r if (params$min_needed){params$min} else{"Any"}`` to ``r if (params$min_needed){params$max} else{"Any"}``\
+  `r if(params$bkgd_needed){paste("Control Background Acceptable: <= ", params$bkgd, "\\")}`
+  
+
+## Result Classification:
+
+  FAT results were classified as Invalid for any instance with the Control slide failing for staining. Invalid is not considered a passing result for manufacturability estimates of First Time Pass Rate (FTPR), as it would require a rerun at minimum and potentially trigger the LEE/NC process.
+  
+  
+
+  `r if(params$dif_needed){paste("For all comparisons, the maximum acceptable difference in SI between test and reference is ", params$dif, " points.")}`
+  This data set did not include any failing NRC slides, so NRC was assumed to be a negligible contributor to fail rate and was not explicitly modeled here. 
+
+
+## All Reader Combined FAT Result
+
+
+``` {r echo = FALSE}
+autofit(flextable(params$sqly %>% count(FAT_Result) %>% mutate(Percent = round(prop.table(n)*100, 2)) %>% rename(Frequency = n)))
+```
+
+
+## All Reader Combined FAT FTPR
+
+
+``` {r echo = FALSE}
+autofit(flextable(params$sqly %>% count(FAT_FTPR) %>% mutate(Percent = round(prop.table(n)*100, 2)) %>% rename(Frequency = n)))
+```
+
+
+## FAT Result by Reader
+
+
+``` {r echo = FALSE}
+autofit(proc_freq(params$sqly, "Reader", "FAT_Result", include.column_percent = FALSE, include.table_percent = FALSE))
+```
+
+
+## FAT FTPR by Reader
+
+
+``` {r echo = FALSE, out.width = 700}
+autofit(proc_freq(params$sqly, "Reader", "FAT_FTPR", include.column_percent = FALSE, include.table_percent = FALSE))
+total <- ggplot(params$sqly, aes(x = factor(Formulation_ref, level = params$order), y = SI_Delta)) + 
+            geom_point(aes(color = Formulation), size = 1, alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1, dodge.width = .5, seed = 1))+
+            theme(text = element_text(size=9), legend.title = element_text(size = 8), legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
+            ggtitle("Signal Intensity Delta and Formulation Strength\n Across Specification Range All Reader Combined Data") +
+            labs(x = "Reference Formulation", y = "Difference in Signal Intensity\n(Ref-Test)")+guides(color=guide_legend(title = "Test Formulation"))
+if (params$dif_needed){
+total <- total + geom_hline(yintercept = c(params$dif, -params$dif))
+}
+total
+```
+
+``` {r echo = FALSE, out.width = 700}
+lots <- ggplot(params$sqly, aes(x = Lot_ref, y = SI_Delta)) + 
+            geom_point(aes(color = Lot), size = 1, alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1, dodge.width = .5, seed = 1))+
+            theme(text = element_text(size=9), legend.title = element_text(size = 8), legend.position = "bottom", plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+            ggtitle("Signal Intensity Delta and Lot Across Specification\nRange All Reader Combined Data") +
+            labs(x = "Reference Lot", y = "Difference in Signal Intensity\n(Ref-Test)")+guides(color=guide_legend(title = "Test Lot"))+
+            facet_grid(Formulation ~ Formulation_ref)
+if (params$dif_needed){
+lots <- lots + geom_hline(yintercept = c(params$dif, -params$dif))
+}
+lots
+```
+
+```{r echo = FALSE, out.width = 700, include = FALSE}
+out <- NULL
+read = 0
+for (i in params$readers){
+  read = read + 1
+  env = new.env()
+  out <- c(out, knit_child('child_report.RMD', envir=env))
+}
+```
+`r paste(out, collapse='\n')`

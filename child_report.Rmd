@@ -1,0 +1,19 @@
+---
+title: "child_report"
+output: word_document
+date: "`r Sys.Date()`"
+---
+## Reader `r read` Analysis
+```{r eval = TRUE, echo = FALSE, out.width = 700, results = 'asis'}
+autofit(flextable(params$sqly %>% filter(Reader == i) %>% count(FAT_Result) %>% mutate(Percent = round(prop.table(n)*100, 2)) %>% rename(Frequency = n)))
+read1 <- ggplot(params$sqly %>% filter(Reader == i), aes(x = factor(Formulation_ref, level = params$order), y = SI_Delta)) + 
+        geom_point(aes(color = Formulation), size = 1, alpha = 0.5, position = position_jitterdodge(jitter.width = 0.1, dodge.width = .5, seed = 1))+
+        theme(text = element_text(size=9), legend.title = element_text(size = 10), legend.position = "bottom", plot.title = element_text(hjust = 0.5))+
+        ggtitle(paste("Signal Intensity Delta and Formulation Strength\n Across Specification Range Reader ", i," Data"))+
+        labs(x = "Reference Formulation", y = "Difference in Signal Intensity\n(Ref-Test)")+guides(color=guide_legend(title = "Test Formulation"))
+if (params$dif_needed){
+read1 <- read1 + geom_hline(yintercept = c(params$dif, -params$dif))
+}
+read1
+```
+
