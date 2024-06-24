@@ -62,7 +62,7 @@ ui <- dashboardPage(skin = "purple",
                                          selected = c("SlideID", "Formulation", "Lot", "SignalIntensity", "Background")
                                          ),
                       checkboxGroupInput("pivot",
-                                         #The are the options to cross on, this analysis does not allow these to be matched.
+                                         #The are the options to cross on, this analysis forces these to be matched.
                                          label = "What data should be kept equal in your analysis?",
                                          choiceNames = c("VTID", "Detection Kit", "Reader"),
                                          choiceValues = c("VTID", "DetectionKit", "Reader"),
